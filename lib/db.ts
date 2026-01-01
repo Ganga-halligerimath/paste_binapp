@@ -45,6 +45,8 @@ function initSQLite() {
     
     sqliteInit = true;
   } catch (error) {
+    console.error('SQLite initialization error:', error);
+    sqliteInit = true; // Prevent retrying
     // SQLite not available (e.g., in serverless environment)
     // Will fall back to KV if available
   }
@@ -60,9 +62,13 @@ async function getKV() {
     throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN must be set for KV storage');
   }
   
-  const { kv: kvClient } = await import('@vercel/kv');
-  kv = kvClient;
-  return kv;
+  try {
+    const { kv: kvClient } = await import('@vercel/kv');
+    kv = kvClient;
+    return kv;
+  } catch (error) {
+    throw new Error('Failed to load @vercel/kv. Make sure it is installed: npm install @vercel/kv');
+  }
 }
 
 function pasteToKey(id: string): string {
@@ -148,28 +154,39 @@ async function incrementViewsKV(id: string): Promise<boolean> {
 }
 
 // Public API - automatically chooses backend
-export function createPaste(
+export async function createPaste(
   content: string,
   ttlSeconds: number | null,
   maxViews: number | null
-): string | Promise<string> {
+): Promise<string> {
   if (useKV) {
     return createPasteKV(content, ttlSeconds, maxViews);
   }
   initSQLite();
+  if (!sqliteDb) {
+    throw new Error('Database initialization failed');
+  }
   return createPasteSQLite(content, ttlSeconds, maxViews);
 }
 
-export function getPaste(id: string): Paste | null | Promise<Paste | null> {
+export async function getPaste(id: string): Promise<Paste | null> {
   if (useKV) {
     return getPasteKV(id);
+  }
+  initSQLite();
+  if (!sqliteDb) {
+    throw new Error('Database initialization failed');
   }
   return getPasteSQLite(id);
 }
 
-export function incrementViews(id: string): boolean | Promise<boolean> {
+export async function incrementViews(id: string): Promise<boolean> {
   if (useKV) {
     return incrementViewsKV(id);
+  }
+  initSQLite();
+  if (!sqliteDb) {
+    throw new Error('Database initialization failed');
   }
   return incrementViewsSQLite(id);
 }

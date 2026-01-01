@@ -33,11 +33,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Create paste
-    const id = await createPaste(
-      content.trim(),
-      ttl_seconds || null,
-      max_views || null
-    );
+    let id: string;
+    try {
+      id = await createPaste(
+        content.trim(),
+        ttl_seconds || null,
+        max_views || null
+      );
+    } catch (dbError) {
+      console.error('Database error creating paste:', dbError);
+      return NextResponse.json(
+        { error: 'Failed to create paste. Database error.' },
+        { status: 500 }
+      );
+    }
 
     // Get base URL from request
     const protocol = request.headers.get('x-forwarded-proto') || 'http';
@@ -49,6 +58,7 @@ export async function POST(request: NextRequest) {
       url: `${baseUrl}/p/${id}`
     }, { status: 201 });
   } catch (error) {
+    console.error('Error creating paste:', error);
     if (error instanceof SyntaxError) {
       return NextResponse.json(
         { error: 'Invalid JSON in request body' },
@@ -56,7 +66,7 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     );
   }

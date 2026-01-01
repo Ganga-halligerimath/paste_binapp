@@ -18,9 +18,9 @@ export default function NotFound() {
         padding: '40px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       }}>
-        <h1 style={{ color: '#d32f2f', marginBottom: '16px' }}>404 - Paste Not Found</h1>
-        <p style={{ color: '#666', marginBottom: '24px' }}>The paste you&apos;re looking for doesn&apos;t exist, has expired, or has reached its view limit.</p>
-        <a href="/" style={{ color: '#1976d2', textDecoration: 'none' }}>Create a new paste</a>
+        <h1 style={{ color: '#d32f2f', marginBottom: '16px' }}>404 - Page Not Found</h1>
+        <p style={{ color: '#666', marginBottom: '24px' }}>The page you&apos;re looking for doesn&apos;t exist.</p>
+        <a href="/" style={{ color: '#1976d2', textDecoration: 'none' }}>Go home</a>
       </div>
     </div>
   );

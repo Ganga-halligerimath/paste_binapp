@@ -61,57 +61,40 @@ export default async function PastePage({
   const formattedContent = escapedContent.replace(/\n/g, '<br />');
 
   return (
-    <html>
-      <head>
-        <title>Paste - {params.id}</title>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>{`
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-          }
-          .paste-container {
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .paste-content {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #333;
-          }
-          .header {
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e0e0e0;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 18px;
-            color: #666;
-          }
-        `}</style>
-      </head>
-      <body>
-        <div className="paste-container">
-          <div className="header">
-            <h1>Paste #{params.id}</h1>
-          </div>
-          <div
-            className="paste-content"
-            dangerouslySetInnerHTML={{ __html: formattedContent }}
-          />
+    <div style={{
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif',
+      maxWidth: '900px',
+      margin: '0 auto',
+      padding: '20px',
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh',
+    }}>
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
+        padding: '24px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      }}>
+        <div style={{
+          marginBottom: '16px',
+          paddingBottom: '12px',
+          borderBottom: '1px solid #e0e0e0',
+        }}>
+          <h1 style={{ margin: 0, fontSize: '18px', color: '#666' }}>Paste #{params.id}</h1>
         </div>
-      </body>
-    </html>
+        <div
+          style={{
+            whiteSpace: 'pre-wrap',
+            wordWrap: 'break-word',
+            fontFamily: '"Courier New", monospace',
+            fontSize: '14px',
+            lineHeight: 1.6,
+            color: '#333',
+          }}
+          dangerouslySetInnerHTML={{ __html: formattedContent }}
+        />
+      </div>
+    </div>
   );
 }
 

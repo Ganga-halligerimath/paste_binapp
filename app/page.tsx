@@ -39,17 +39,21 @@ export default function Home() {
         body.max_views = views;
       }
 
+      console.log('Submitting paste:', body);
       const response = await fetch('/api/pastes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
-        setError(data.error || 'Failed to create paste');
+        setError(data.error || `Failed to create paste (${response.status})`);
         setLoading(false);
+        console.error('API Error:', data);
         return;
       }
 
@@ -58,8 +62,9 @@ export default function Home() {
       setTtlSeconds('');
       setMaxViews('');
     } catch (err) {
-      setError('Network error. Please try again.');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Network error. Please try again.';
+      setError(errorMessage);
+      console.error('Error creating paste:', err);
     } finally {
       setLoading(false);
     }
