@@ -1,0 +1,117 @@
+import { headers } from 'next/headers';
+import {
+  getPaste,
+  isPasteAvailable,
+  getCurrentTime,
+  incrementViews
+} from '@/lib/db';
+import { notFound } from 'next/navigation';
+
+async function getPasteData(id: string) {
+  const paste = await getPaste(id);
+
+  if (!paste) {
+    return null;
+  }
+
+  // Get current time (with test mode support)
+  const testMode = process.env.TEST_MODE === '1';
+  const headersList = await headers();
+  const testNowMs = headersList.get('x-test-now-ms');
+  const now = getCurrentTime(testMode, testNowMs);
+
+  // Check if paste is available (before incrementing)
+  const availability = isPasteAvailable(paste, now);
+  if (!availability.available) {
+    return null;
+  }
+
+  // Increment view count (HTML views also count)
+  // Note: There's a small race condition window here, but acceptable for this implementation
+  await incrementViews(id);
+
+  // Re-fetch to get updated paste
+  return await getPaste(id);
+}
+
+export default async function PastePage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const paste = await getPasteData(params.id);
+
+  if (!paste) {
+    notFound();
+  }
+
+  // Escape HTML to prevent XSS
+  const escapeHtml = (text: string) => {
+    const map: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;',
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
+  };
+
+  const escapedContent = escapeHtml(paste.content);
+  const formattedContent = escapedContent.replace(/\n/g, '<br />');
+
+  return (
+    <html>
+      <head>
+        <title>Paste - {params.id}</title>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>{`
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+          }
+          .paste-container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .paste-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+          }
+          .header {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 18px;
+            color: #666;
+          }
+        `}</style>
+      </head>
+      <body>
+        <div className="paste-container">
+          <div className="header">
+            <h1>Paste #{params.id}</h1>
+          </div>
+          <div
+            className="paste-content"
+            dangerouslySetInnerHTML={{ __html: formattedContent }}
+          />
+        </div>
+      </body>
+    </html>
+  );
+}
+

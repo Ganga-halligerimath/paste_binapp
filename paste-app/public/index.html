@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Paste App</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: lightblue;
+    }
+
+    textarea {
+      background-color: rgb(249, 238, 238);
+    }
+
+    #resultBox {
+      display: none;
+      margin: 40px auto;
+      padding: 20px;
+      width: 70%;
+      border: 2px solid #333;
+      text-align: center;
+      background: #f9f9f9;
+    }
+
+    #resultBox a {
+      font-size: 18px;
+      font-weight: bold;
+      word-break: break-all;
+    }
+  </style>
+</head>
+
+<body>
+  <center>
+    <h1>PASTEBIN APP</h1>
+
+    <form id="pasteForm">
+      <textarea
+        id="content"
+        rows="10"
+        cols="60"
+        placeholder="Enter content"
+        required
+      ></textarea>
+
+      <br /><br />
+
+      <label>Link Expiry Time:</label>
+      <input type="datetime-local" id="expiry" />
+
+      <br /><br />
+
+      <label>Max Views:</label>
+      <input type="number" id="views" value="10" />
+
+      <br /><br />
+
+      <button type="submit">Create Link</button>
+    </form>
+  </center>
+
+  <div id="resultBox">
+    <h3>✅ Paste Created</h3>
+    <a id="pasteLink" href="#" target="_blank"></a>
+  </div>
+
+  <p id="error" style="color:red; text-align:center;"></p>
+
+  <script>
+    const form = document.getElementById("pasteForm");
+    const error = document.getElementById("error");
+    const resultBox = document.getElementById("resultBox");
+    const pasteLink = document.getElementById("pasteLink");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      error.textContent = "";
+      resultBox.style.display = "none";
+
+      const content = document.getElementById("content").value.trim();
+      const expiry = document.getElementById("expiry").value;
+      const views = document.getElementById("views").value;
+
+      if (!content) {
+        error.textContent = "Content cannot be empty";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/pastes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content,
+            expires_at: expiry || null,
+            max_views: views ? Number(views) : null
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed");
+        }
+
+        pasteLink.href = data.url || "#";
+        pasteLink.textContent = data.url || "Paste created successfully";
+        resultBox.style.display = "block";
+      } catch (err) {
+        error.textContent = "❌ Server error. Check console.";
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
