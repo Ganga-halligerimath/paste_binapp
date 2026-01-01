@@ -27,15 +27,16 @@ The application automatically selects the appropriate storage backend based on e
 
 **Local Development**: SQLite database using `better-sqlite3`
 
-- Used when `KV_REST_API_URL` and `KV_REST_API_TOKEN` are not set
+- Used when Postgres environment variables are not set
 - Database file stored in the `data/` directory
 - Automatically initialized on first run
 
-**Production Deployment (Vercel/Serverless)**: Vercel KV (Redis)
+**Production Deployment (Vercel/Serverless)**: Vercel Postgres (Neon)
 
-- Automatically used when `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables are set
-- No code changes needed - the database layer automatically switches to KV
+- Automatically used when `POSTGRES_URL` (or `POSTGRES_PRISMA_URL` or `POSTGRES_URL_NON_POOLING`) environment variable is set
+- No code changes needed - the database layer automatically switches to Postgres
 - Perfect for serverless environments like Vercel
+- Uses Neon Postgres through Vercel Marketplace
 
 The implementation in `lib/db.ts` supports both backends seamlessly, so the same code works in both local development and production.
 
@@ -210,22 +211,21 @@ If the header is absent, real system time is used.
 
 ### Vercel
 
-1. **Set up Vercel KV**:
+1. **Set up Vercel Postgres (Neon)**:
    - Go to your Vercel dashboard
-   - Navigate to Storage → Create Database → KV
-   - Create a new KV database
-   - Copy the `KV_REST_API_URL` and `KV_REST_API_TOKEN` values
+   - Navigate to Storage → Create Database → Browse Marketplace
+   - Select "Neon" (Serverless Postgres)
+   - Create a new Postgres database
+   - Vercel will automatically add the `POSTGRES_URL` environment variable to your project
 
 2. **Deploy to Vercel**:
    - Push your code to GitHub
    - Import the project in Vercel (or use Vercel CLI: `vercel`)
-   - Add environment variables in Vercel dashboard:
-     - `KV_REST_API_URL` (from step 1)
-     - `KV_REST_API_TOKEN` (from step 1)
-     - Optionally: `TEST_MODE=1` if you need testing mode
+   - The `POSTGRES_URL` environment variable will be automatically set when you connect Neon
+   - Optionally add: `TEST_MODE=1` if you need testing mode
    - Deploy
 
-The application will automatically use Vercel KV when these environment variables are present. No code changes needed!
+The application will automatically use Postgres when the `POSTGRES_URL` environment variable is present. No code changes needed!
 
 ## License
 

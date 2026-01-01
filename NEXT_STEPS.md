@@ -3,7 +3,7 @@
 ## ✅ What's Done ✅
 - [x] Project structure created
 - [x] All API routes implemented
-- [x] Database layer (SQLite + Vercel KV support)
+- [x] Database layer (SQLite + Vercel Postgres support)
 - [x] UI for creating/viewing pastes
 - [x] All requirements met
 - [x] Git repository initialized
@@ -41,25 +41,22 @@ vercel
 # Follow the prompts
 ```
 
-### 4. Set Up Vercel KV (Required for Production)
+### 4. Set Up Vercel Postgres (Neon) - Required for Production
 
-1. **Create KV Database**:
-   - In Vercel Dashboard → Storage → Create Database → KV
-   - Create a new KV database
-   - Copy the credentials
+1. **Create Postgres Database**:
+   - In Vercel Dashboard → Storage → Create Database → Browse Marketplace
+   - Select "Neon" (Serverless Postgres)
+   - Create a new Postgres database
+   - Vercel will automatically add the `POSTGRES_URL` environment variable
 
-2. **Add Environment Variables in Vercel**:
+2. **Verify Environment Variables**:
    - Go to your project → Settings → Environment Variables
-   - Add these variables:
-     ```
-     KV_REST_API_URL = <your-kv-url>
-     KV_REST_API_TOKEN = <your-kv-token>
-     ```
-   - Optional: `TEST_MODE=1` (if you need testing mode)
+   - You should see `POSTGRES_URL` automatically added by Vercel
+   - Optional: Add `TEST_MODE=1` (if you need testing mode)
 
 3. **Redeploy**:
-   - After adding environment variables, trigger a new deployment
-   - The app will automatically use Vercel KV instead of SQLite
+   - After connecting the database, trigger a new deployment
+   - The app will automatically use Postgres instead of SQLite
 
 ### 5. Test Your Deployment
 
@@ -94,7 +91,7 @@ Then test:
 
 ## 🚨 Important Notes
 
-1. **SQLite won't work on Vercel** - Make sure to set up Vercel KV before deploying
+1. **SQLite won't work on Vercel** - Make sure to set up Vercel Postgres (Neon) before deploying
 2. **Environment Variables** - Must be set in Vercel dashboard, not in code
 3. **No Secrets in Code** - All sensitive data should be in environment variables
 4. **Build Command** - Vercel auto-detects Next.js, but you can verify: `npm run build`
@@ -106,16 +103,16 @@ Then test:
 - Ensure Node.js version is compatible (18+)
 
 **Database errors in production?**
-- Verify `KV_REST_API_URL` and `KV_REST_API_TOKEN` are set
-- Check Vercel KV database is created and active
+- Verify `POSTGRES_URL` is set (should be automatic when you connect Neon)
+- Check Vercel Postgres (Neon) database is created and active
 
 **Pastes not persisting?**
-- Confirm Vercel KV is properly configured
-- Check environment variables are set correctly
+- Confirm Vercel Postgres (Neon) is properly connected
+- Check `POSTGRES_URL` environment variable is set correctly
 
 ## 📚 Resources
 
-- [Vercel KV Documentation](https://vercel.com/docs/storage/vercel-kv)
+- [Vercel Postgres Documentation](https://vercel.com/docs/storage/vercel-postgres)
 - [Next.js Deployment](https://nextjs.org/docs/deployment)
 - [Vercel Environment Variables](https://vercel.com/docs/concepts/projects/environment-variables)
 

@@ -13,7 +13,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "better-sqlite3": "^9.2.2",
-    "@vercel/kv": "^0.2.1",
+    "@vercel/postgres": "^0.5.1",
     "nanoid": "^5.0.4"
   },
   "devDependencies": {

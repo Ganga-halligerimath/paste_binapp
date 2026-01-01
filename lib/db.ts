@@ -10,7 +10,7 @@ export interface Paste {
 }
 
 // Determine which storage backend to use
-const useKV = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+const usePostgres = process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || process.env.POSTGRES_URL_NON_POOLING;
 
 // SQLite implementation (for local development)
 let sqliteDb: any = null;
@@ -47,32 +47,38 @@ function initSQLite() {
   } catch (error) {
     console.error('SQLite initialization error:', error);
     sqliteInit = true; // Prevent retrying
-    // SQLite not available (e.g., in serverless environment)
-    // Will fall back to KV if available
   }
 }
 
-// Vercel KV implementation (for production)
-let kv: any = null;
+// Postgres implementation (for production)
+let postgresClient: any = null;
+let postgresInit = false;
 
-async function getKV() {
-  if (kv) return kv;
-  
-  if (!useKV) {
-    throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN must be set for KV storage');
-  }
+async function initPostgres() {
+  if (postgresInit) return;
   
   try {
-    const { kv: kvClient } = await import('@vercel/kv');
-    kv = kvClient;
-    return kv;
+    const { sql } = await import('@vercel/postgres');
+    postgresClient = sql;
+    
+    // Create table if it doesn't exist
+    await postgresClient`
+      CREATE TABLE IF NOT EXISTS pastes (
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        created_at BIGINT NOT NULL,
+        ttl_seconds INTEGER,
+        max_views INTEGER,
+        current_views INTEGER NOT NULL DEFAULT 0
+      )
+    `;
+    
+    postgresInit = true;
   } catch (error) {
-    throw new Error('Failed to load @vercel/kv. Make sure it is installed: npm install @vercel/kv');
+    console.error('Postgres initialization error:', error);
+    postgresInit = true; // Prevent retrying
+    throw error;
   }
-}
-
-function pasteToKey(id: string): string {
-  return `paste:${id}`;
 }
 
 // SQLite functions
@@ -111,46 +117,56 @@ function incrementViewsSQLite(id: string): boolean {
   return result.changes > 0;
 }
 
-// KV functions
-async function createPasteKV(
+// Postgres functions
+async function createPastePostgres(
   content: string,
   ttlSeconds: number | null,
   maxViews: number | null
 ): Promise<string> {
-  const kvClient = await getKV();
+  await initPostgres();
+  if (!postgresClient) throw new Error('Postgres not initialized');
+  
   const id = nanoid();
   const createdAt = Date.now();
   
-  const paste: Paste = {
-    id,
-    content,
-    created_at: createdAt,
-    ttl_seconds: ttlSeconds,
-    max_views: maxViews,
-    current_views: 0,
-  };
+  await postgresClient`
+    INSERT INTO pastes (id, content, created_at, ttl_seconds, max_views, current_views)
+    VALUES (${id}, ${content}, ${createdAt}, ${ttlSeconds}, ${maxViews}, 0)
+  `;
   
-  await kvClient.set(pasteToKey(id), JSON.stringify(paste));
   return id;
 }
 
-async function getPasteKV(id: string): Promise<Paste | null> {
-  const kvClient = await getKV();
-  const data = await kvClient.get(pasteToKey(id));
-  if (!data) return null;
-  return JSON.parse(data as string) as Paste;
+async function getPastePostgres(id: string): Promise<Paste | null> {
+  await initPostgres();
+  if (!postgresClient) return null;
+  
+  const result = await postgresClient`
+    SELECT * FROM pastes WHERE id = ${id}
+  `;
+  
+  if (result.length === 0) return null;
+  
+  const row = result[0];
+  return {
+    id: row.id,
+    content: row.content,
+    created_at: Number(row.created_at),
+    ttl_seconds: row.ttl_seconds,
+    max_views: row.max_views,
+    current_views: row.current_views,
+  };
 }
 
-async function incrementViewsKV(id: string): Promise<boolean> {
-  const kvClient = await getKV();
-  const key = pasteToKey(id);
-  const data = await kvClient.get(key);
-  if (!data) return false;
+async function incrementViewsPostgres(id: string): Promise<boolean> {
+  await initPostgres();
+  if (!postgresClient) return false;
   
-  const paste = JSON.parse(data as string) as Paste;
-  paste.current_views += 1;
-  await kvClient.set(key, JSON.stringify(paste));
-  return true;
+  const result = await postgresClient`
+    UPDATE pastes SET current_views = current_views + 1 WHERE id = ${id}
+  `;
+  
+  return result.count > 0;
 }
 
 // Public API - automatically chooses backend
@@ -159,8 +175,8 @@ export async function createPaste(
   ttlSeconds: number | null,
   maxViews: number | null
 ): Promise<string> {
-  if (useKV) {
-    return createPasteKV(content, ttlSeconds, maxViews);
+  if (usePostgres) {
+    return createPastePostgres(content, ttlSeconds, maxViews);
   }
   initSQLite();
   if (!sqliteDb) {
@@ -170,8 +186,8 @@ export async function createPaste(
 }
 
 export async function getPaste(id: string): Promise<Paste | null> {
-  if (useKV) {
-    return getPasteKV(id);
+  if (usePostgres) {
+    return getPastePostgres(id);
   }
   initSQLite();
   if (!sqliteDb) {
@@ -181,8 +197,8 @@ export async function getPaste(id: string): Promise<Paste | null> {
 }
 
 export async function incrementViews(id: string): Promise<boolean> {
-  if (useKV) {
-    return incrementViewsKV(id);
+  if (usePostgres) {
+    return incrementViewsPostgres(id);
   }
   initSQLite();
   if (!sqliteDb) {
